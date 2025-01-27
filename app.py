@@ -77,7 +77,7 @@ MarkDown3=st.number_input('Enter MarkDown3',min_value=0)
 MarkDown4=st.number_input('Enter MarkDown4',min_value=0)
 MarkDown5=st.number_input('Enter MarkDown5',min_value=0)
 CPI=st.number_input('Enter CPI',min_value=0.0001)
-Unemployment1=st.number_input('Enter CPI',min_value=0.001)
+Unemployment1=st.number_input('Enter Unemployment rate',min_value=0.001)
 Unemployment=np.log2(Unemployment1)
 
 if st.button('Predict'):
