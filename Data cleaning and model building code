@@ -1,0 +1,195 @@
+import pandas as pd
+df_store=pd.read_csv("/content/stores_data_set.csv")
+df_sales=pd.read_csv("/content/sales_data_set.csv")
+df_features=pd.read_csv("/content/Features_data_set.csv")
+
+df_store_sales=pd.merge(df_sales,df_store,on="Store")
+
+df_features.drop(columns="IsHoliday",axis=1,inplace=True)
+
+df_final=pd.merge(df_store_sales,df_features,on=["Store","Date"])
+
+df_final["Date"]=pd.to_datetime(df_final["Date"],format="%d/%m/%Y")
+df_final["Year"]=df_final["Date"].dt.year
+df_final["Month"]=df_final["Date"].dt.month
+df_final["Day"]=df_final["Date"].dt.day
+df_final["Day_of_week"]=df_final["Date"].dt.day_of_week
+df_final["week"]=df_final["Date"].dt.isocalendar().week
+
+
+from sklearn.preprocessing import OrdinalEncoder
+Encoder=OrdinalEncoder()
+df_final["IsHoliday"]=Encoder.fit_transform(df_final[["IsHoliday"]])
+df_final["Type"]=Encoder.fit_transform(df_final[["Type"]])
+
+df_final.isnull().sum()
+
+df_final.fillna(0,inplace=True)
+
+df_final.duplicated().sum()
+
+df_final=df_final.drop("Date",axis=1)
+
+df_final.corr()
+
+continues=["Weekly_Sales","Size","Temperature","Fuel_Price","MarkDown1","MarkDown2","MarkDown3","MarkDown4","MarkDown5","CPI","Unemployment"]
+categories=["Store","Dept","IsHoliday","Type","Year","Month","Day","Day_of_week","week"]
+
+from scipy import stats
+
+def two_sample(d1,d2):
+  t=0
+  f=0
+  for i in  range(31):
+    sample1=d1.sample(frac=0.03)
+    sample2=d2.sample(frac=0.03)
+    t_test,p_value=stats.ttest_ind(sample1,sample2)
+    if p_value < 0.055:
+      f=f+1
+    else:
+      t=t+1
+  if t>f:
+    return True
+  else:
+    return False
+
+#defining function for categories vs categories
+def chisqare_cat_vs_cat(d1,d2):
+  return True if stats.chi2_contingency(pd.crosstab(d1,d2))[1] < 0.055 else False
+
+def annova_test(d1,d2):
+  group=df_final[d2].unique()
+  data={}
+  for i in group:
+    data[i]=df_final[d1][df_final[d2]==i]
+  f_value,p_value=stats.f_oneway(*[i for i in data.values()])
+  if p_value < 0.055:
+    return False
+  else:
+    return True
+
+final={}
+for i in df_final.columns:
+  final[i]={}
+  for j in df_final.columns:
+    if (i in continues) and (j in continues):
+      result=two_sample(df_final[i],df_final[j])
+    elif  (i in continues) and (j in categories):
+      result=annova_test(i,j)
+    elif (i in categories) and (j in continues):
+      result=annova_test(j,i)
+    elif (i in categories) and (j in categories):
+      result=chisqare_cat_vs_cat(df_final[i],df_final[j])
+    if result:
+      final[i][j]=1
+    else:
+      final[i][j]=0
+
+final1=pd.DataFrame(final)
+
+final1
+
+#as per the correlation test and hypothesis test, there is not impact on Date,Markdown2,markdown3 on the data.
+#But logically these column are needed to analysis the store future performance.
+
+for i in continues:
+    print(i,df_final[i].skew(),df_final[i].kurtosis())
+
+df_final1=df_final.copy()
+
+df_final=df_final1.copy()
+
+data=["Weekly_Sales","MarkDown1","MarkDown2","MarkDown3","MarkDown4","MarkDown5","Unemployment"]
+from scipy import stats
+method=[0,0.5,-0.5,1,-1,2,-2]
+for i in method:
+  for j in data:
+    print(i,j)
+    print("skewness",pd.DataFrame(stats.boxcox(df_final[j],lmbda=i)).skew().values,"kurtosis",pd.DataFrame(stats.boxcox(df_final[j],lmbda=i)).kurtosis().values)
+  print("--------------------------")
+
+data=["Weekly_Sales","MarkDown1","MarkDown2","MarkDown3","MarkDown4","MarkDown5","Unemployment"]
+for j in data:
+  transformed_data = df_final[j].rank()
+  print(j,"skewness",transformed_data.skew(),"kurtosis",transformed_data.kurtosis())
+
+data=["Weekly_Sales","MarkDown1","MarkDown2","MarkDown3","MarkDown4","MarkDown5"]
+for j in data:
+  df_final[j]=df_final[j].rank()
+
+from scipy import stats
+df_final["Unemployment"]=stats.boxcox(df_final["Unemployment"],lmbda=0)
+
+df_final
+
+y=df_final["Weekly_Sales"]
+x=df_final.drop("Weekly_Sales",axis=1)
+
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.3)
+
+from sklearn.preprocessing import StandardScaler
+scaler1=StandardScaler()
+
+scaler1.fit(x_train)
+x_train_scaler=scaler1.transform(x_train)
+x_test_scaler=scaler1.transform(x_test)
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
+import tensorflow as tf
+
+model2 = Sequential()
+
+model2.add(Dense(128, input_dim=x_train_scaler.shape[1], activation="relu"))
+model2.add(Dropout(0.30))
+model2.add(BatchNormalization())
+
+model2.add(Dense(64, activation="relu"))
+model2.add(Dropout(0.20))
+model2.add(BatchNormalization())
+
+model2.add(Dense(32, activation="relu"))
+model2.add(Dropout(0.10))
+
+model2.add(Dense(1))
+
+model2.compile(loss="mean_squared_error", optimizer="adam",
+              metrics=[tf.keras.metrics.R2Score(), tf.keras.metrics.MeanAbsoluteError(),
+                       tf.keras.metrics.MeanSquaredError(), tf.keras.metrics.MeanAbsolutePercentageError()])
+
+x_train_scaler.shape,y_train.shape
+
+result=model2.fit(x_train_scaler,y_train,epochs=28,validation_split=0.15,batch_size=64)
+
+df_result=pd.DataFrame(result.history)
+
+import matplotlib.pyplot as plt
+plt.plot(range(1,29),df_result["mean_absolute_error"],label="train_mae")
+plt.plot(range(1,29),df_result["val_mean_absolute_error"],label="val_mae")
+plt.legend()
+plt.show()
+plt.plot(range(1,29),df_result["r2_score"],label="train_r2")
+plt.plot(range(1,29),df_result["val_r2_score"],label="val_r2")
+plt.legend()
+plt.show()
+plt.plot(range(1,29),df_result["loss"],label="train_loss")
+plt.plot(range(1,29),df_result["val_loss"],label="val_loss")
+plt.legend()
+plt.show()
+plt.plot(range(1,29),df_result["mean_absolute_percentage_error"],label="train_mape")
+plt.plot(range(1,29),df_result["val_mean_absolute_percentage_error"],label="val_mape")
+plt.legend()
+plt.show()
+plt.plot(range(1,29),df_result["mean_squared_error"],label="train_mse")
+plt.plot(range(1,29),df_result["val_mean_squared_error"],label="val_mse")
+plt.legend()
+plt.show()
+
+from tensorflow.keras.models import save_model
+
+model2.save("model_store.h5")
+
+import pickle
+with open("std_store.pkl","wb") as f1:
+  pickle.dump(scaler1,f1)
