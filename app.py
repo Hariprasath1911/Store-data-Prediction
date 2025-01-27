@@ -46,9 +46,9 @@ if selected_date:
     Day_of_week = selected_datetime.weekday()
     week = selected_datetime.isocalendar()[1]
 
-Is=st.selectbox('Is there any Public Holiday in the particular week',['Yes','No'])
-Is_map={'Yes':1,'No':0}    
-IsHoliday=Is.get(Is_map)
+holi=st.selectbox('Is there any Public Holiday in the particular week',['Yes','No'])
+holi_map={'Yes':1,'No':0}    
+IsHoliday=Is.get(holi_map)
 Temperature=st.number_input('Enter temperature',min_value=0.01)
 Fuel_Price=st.number_input('Enter Fuel Price',min_value=0.01)
 MarkDown1=st.number_input('Enter MarkDown1',min_value=0)
