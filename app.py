@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-from tensorflow.keras.activations import relu
+from tensorflow.keras.layers import ReLU
 
 @st.cache_resource
 def load_model_file():
