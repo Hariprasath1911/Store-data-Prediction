@@ -48,7 +48,7 @@ if selected_date:
 
 holi=st.selectbox('Is there any Public Holiday in the particular week',['Yes','No'])
 holi_map={'Yes':1,'No':0}    
-IsHoliday=holi.get(holi_map)
+IsHoliday=holi_map.get(holi)
 Temperature=st.number_input('Enter temperature',min_value=0.01)
 Fuel_Price=st.number_input('Enter Fuel Price',min_value=0.01)
 MarkDown1=st.number_input('Enter MarkDown1',min_value=0)
