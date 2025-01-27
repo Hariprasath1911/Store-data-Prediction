@@ -61,7 +61,7 @@ Unemployment1=st.number_input('Enter CPI',min_value=0.001)
 Unemployment=np.log2(Unemployment1)
 
 if st.button('Predict'):
-    c1=np.array([[Store,Dept,Weekly_Sales,IsHoliday,Type,Size,Temperature,Fuel_Price,MarkDown1,MarkDown2,MarkDown3,MarkDown4,MarkDown5,CPI,Unemployment,Year,Month,Day,Day_of_week,week]])
+    c1=np.array([[Store,Dept,IsHoliday,Type,Size,Temperature,Fuel_Price,MarkDown1,MarkDown2,MarkDown3,MarkDown4,MarkDown5,CPI,Unemployment,Year,Month,Day,Day_of_week,week]])
     c2=scaler.transform(c1)
     predicted_output = model.predict(c2)
     st.write(f"Predicted Value: {predicted_output[0][0]:.2f}")
